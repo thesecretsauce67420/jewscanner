@@ -25,7 +25,8 @@ After this, run python JewScanner.py.
 The Bot should go online, try using /addip to add a server ip, then /players or /findplayer name_here
 
 # Required stuff:
-Python
+Python,
+
 A Computer able to run a dsc bot and multiple threads
 
 Thats all!
