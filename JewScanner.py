@@ -5,9 +5,15 @@ import asyncio
 import os
 import urllib.parse
 import json
+import requests
+import subprocess
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
+VERSION = "1.0"
+REMOTE_VERSION_URL = "https://raw.githubusercontent.com/thesecretsauce67420/jewscanner/refs/heads/main/version.txt"
+BOT_FILE_URL = "https://raw.githubusercontent.com/thesecretsauce67420/jewscanner/refs/heads/main/JewScanner.py"
 CONFIG_FILE = "config.json"
 
 def load_config():
@@ -25,12 +31,34 @@ GUILD_ID = config["GUILD_ID"]
 SERVERS_FILE = config["SERVERS_FILE"]
 MAX_WORKERS = (os.cpu_count() or 4) * 5
 executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
-
 intents = discord.Intents.default()
-intents.message_content = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
+def get_remote_version():
+    try:
+        r = requests.get(REMOTE_VERSION_URL, timeout=5)
+        if r.status_code == 200:
+            return r.text.strip()
+    except Exception as e:
+        print(f"Version check failed: {e}")
+    return None
+
+
+def download_new_script():
+    try:
+        r = requests.get(BOT_FILE_URL, timeout=10)
+        if r.status_code == 200:
+            return r.text
+    except Exception as e:
+        print(f"Download failed: {e}")
+    return None
+
+
+def restart_bot():
+    python = sys.executable
+    os.execv(python, [python] + sys.argv)
+    
 def load_servers():
     if not os.path.exists(SERVERS_FILE):
         return []
@@ -299,7 +327,6 @@ async def iplist(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed)
 
-
 @tree.command(
     name="playerlist",
     description="Show players for a specific server (by name)",
@@ -313,13 +340,26 @@ async def playerlist(interaction: discord.Interaction, server: str):
 
     await interaction.response.defer(thinking=True)
 
-    result = await asyncio.to_thread(find_server_by_name, server)
+    snippet = server.lower()
+    matches = []
 
-    if not result:
+    # 🔍 Find ALL matching servers (not just first)
+    for ip, port in load_servers():
+        try:
+            info = await asyncio.to_thread(a2s.info, (ip, port))
+
+            if snippet in info.server_name.lower():
+                matches.append((ip, port, info))
+
+        except Exception:
+            continue
+
+    if not matches:
         await interaction.followup.send("❌ Server not found.")
         return
 
-    ip, port, info = result
+    # 🎯 MAIN SERVER (first match)
+    ip, port, info = matches[0]
 
     try:
         players = await asyncio.to_thread(a2s.players, (ip, port))
@@ -339,7 +379,78 @@ async def playerlist(interaction: discord.Interaction, server: str):
     player_list = "\n".join([f"• {p.name}" for p in players]) if players else "No players online"
     embed.add_field(name="👤 Player List", value=player_list, inline=False)
 
+    # ➕ OTHER MATCHING SERVERS
+    if len(matches) > 1:
+        others = matches[1:]
+
+        other_list = "\n".join(
+            [f"`{ip}:{port}` - {info.server_name}" for ip, port, info in others]
+        )
+
+        embed.add_field(
+            name="📡 Other Matching Servers",
+            value=other_list[:1024],  # Discord field limit
+            inline=False
+        )
+
     await interaction.followup.send(embed=embed)
+
+@tree.command(
+    name="checkforupdates",
+    description="Check and update the bot",
+    guild=discord.Object(id=GUILD_ID)
+)
+async def checkforupdates(interaction: discord.Interaction):
+
+    if not allowed(interaction):
+        await interaction.response.send_message("❌ Wrong channel", ephemeral=True)
+        return
+
+    await interaction.response.defer(thinking=True)
+
+    remote_version = await asyncio.to_thread(get_remote_version)
+
+    if not remote_version:
+        await interaction.followup.send("❌ Failed to fetch remote version.")
+        return
+
+    if remote_version == VERSION:
+        await interaction.followup.send(f"✅ Already up to date (v{VERSION})")
+        return
+
+    await interaction.followup.send(
+        f"⬇️ Updating from v{VERSION} → v{remote_version}..."
+    )
+
+    new_code = await asyncio.to_thread(download_new_script)
+
+    if not new_code:
+        await interaction.followup.send("❌ Failed to download update.")
+        return
+
+    try:
+        # Backup current file
+        current_file = sys.argv[0]
+        backup_file = current_file + ".bak"
+
+        with open(current_file, "r", encoding="utf-8") as f:
+            old_code = f.read()
+
+        with open(backup_file, "w", encoding="utf-8") as f:
+            f.write(old_code)
+
+        # Write new version
+        with open(current_file, "w", encoding="utf-8") as f:
+            f.write(new_code)
+
+        await interaction.followup.send("♻️ Update applied. Restarting...")
+
+        await asyncio.sleep(2)
+
+        restart_bot()
+
+    except Exception as e:
+        await interaction.followup.send(f"❌ Update failed: {e}")
     
 @client.event
 async def on_ready():
