@@ -11,7 +11,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
-VERSION = "1.0"
+VERSION = "1.1"
 REMOTE_VERSION_URL = "https://raw.githubusercontent.com/thesecretsauce67420/jewscanner/refs/heads/main/version.txt"
 BOT_FILE_URL = "https://raw.githubusercontent.com/thesecretsauce67420/jewscanner/refs/heads/main/JewScanner.py"
 CONFIG_FILE = "config.json"
@@ -199,7 +199,7 @@ async def findplayer(interaction: discord.Interaction, name: str):
         await interaction.response.send_message("❌ Wrong channel", ephemeral=True)
         return
 
-    await interaction.response.defer(thinking=True)
+    await interaction.response.send_message("⏳ Processing...")
 
     results = await asyncio.to_thread(search_servers, name)
 
@@ -236,7 +236,7 @@ async def players(interaction: discord.Interaction):
         await interaction.response.send_message("❌ Wrong channel", ephemeral=True)
         return
 
-    await interaction.response.defer(thinking=True)
+    await interaction.response.send_message("⏳ Processing...")
 
     results = await asyncio.to_thread(get_all_servers)
 
@@ -338,7 +338,7 @@ async def playerlist(interaction: discord.Interaction, server: str):
         await interaction.response.send_message("❌ Wrong channel", ephemeral=True)
         return
 
-    await interaction.response.defer(thinking=True)
+    await interaction.response.send_message("⏳ Processing...")
 
     snippet = server.lower()
     matches = []
@@ -406,7 +406,7 @@ async def checkforupdates(interaction: discord.Interaction):
         await interaction.response.send_message("❌ Wrong channel", ephemeral=True)
         return
 
-    await interaction.response.defer(thinking=True)
+    await interaction.response.send_message("⏳ Processing...")
 
     remote_version = await asyncio.to_thread(get_remote_version)
 
