@@ -11,7 +11,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
-VERSION = "1.2"
+VERSION = "1.3"
 REMOTE_VERSION_URL = "https://raw.githubusercontent.com/thesecretsauce67420/jewscanner/refs/heads/main/version.txt"
 BOT_FILE_URL = "https://raw.githubusercontent.com/thesecretsauce67420/jewscanner/refs/heads/main/JewScanner.py"
 CONFIG_FILE = "config.json"
@@ -458,9 +458,57 @@ async def on_ready():
     await tree.sync(guild=guild)
 
     print("JewScanner By TheSecretSauce67420 Initialized!")
+
     channel = client.get_channel(ALLOWED_CHANNEL_ID)
     if channel is None:
         channel = await client.fetch_channel(ALLOWED_CHANNEL_ID)
-    await channel.send("✅ Initalized!")
+
+    # ✅ keep init message
+    await channel.send("✅ Initialized!")
+
+    await asyncio.sleep(4)
+
+    servers = load_servers()
+
+    def check_server(server):
+        try:
+            info = a2s.info(server)
+            return (server, info)
+        except Exception:
+            return None
+
+    results = await asyncio.gather(
+        *[asyncio.to_thread(check_server, s) for s in servers]
+    )
+
+    online = []
+    offline = []
+
+    for i, server in enumerate(servers):
+        if results[i]:
+            online.append((server, results[i][1]))
+        else:
+            offline.append(server)
+
+    embed = discord.Embed(
+        title="📡 Server Status Report",
+        color=discord.Color.green() if online else discord.Color.red()
+    )
+
+    embed.add_field(
+        name=f"🟢 Online ({len(online)})",
+        value="\n".join([f"🟢 `{ip}:{port}`" for (ip, port), _ in online]) or "None",
+        inline=False
+    )
+
+    embed.add_field(
+        name=f"🔴 Offline ({len(offline)})",
+        value="\n".join([f"🔴 `{ip}:{port}`" for ip, port in offline]) or "None",
+        inline=False
+    )
+
+    embed.set_footer(text=f"Total servers: {len(servers)}")
+
+    await channel.send(embed=embed)
 
 client.run(TOKEN)
