@@ -11,7 +11,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
-VERSION = "1.1"
+VERSION = "1.2"
 REMOTE_VERSION_URL = "https://raw.githubusercontent.com/thesecretsauce67420/jewscanner/refs/heads/main/version.txt"
 BOT_FILE_URL = "https://raw.githubusercontent.com/thesecretsauce67420/jewscanner/refs/heads/main/JewScanner.py"
 CONFIG_FILE = "config.json"
@@ -456,6 +456,11 @@ async def checkforupdates(interaction: discord.Interaction):
 async def on_ready():
     guild = discord.Object(id=GUILD_ID)
     await tree.sync(guild=guild)
-    print(f"JewScanner By TheSecretSauce67420 Initalized!")
+
+    print("JewScanner By TheSecretSauce67420 Initialized!")=
+    channel = client.get_channel(ALLOWED_CHANNEL_ID)
+    if channel is None:
+        channel = await client.fetch_channel(ALLOWED_CHANNEL_ID)
+    await channel.send("✅ Initalized!")
 
 client.run(TOKEN)
