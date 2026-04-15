@@ -457,7 +457,7 @@ async def on_ready():
     guild = discord.Object(id=GUILD_ID)
     await tree.sync(guild=guild)
 
-    print("JewScanner By TheSecretSauce67420 Initialized!")=
+    print("JewScanner By TheSecretSauce67420 Initialized!")
     channel = client.get_channel(ALLOWED_CHANNEL_ID)
     if channel is None:
         channel = await client.fetch_channel(ALLOWED_CHANNEL_ID)
