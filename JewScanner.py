@@ -11,7 +11,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
-VERSION = "1.3"
+VERSION = "1.4"
 REMOTE_VERSION_URL = "https://raw.githubusercontent.com/thesecretsauce67420/jewscanner/refs/heads/main/version.txt"
 BOT_FILE_URL = "https://raw.githubusercontent.com/thesecretsauce67420/jewscanner/refs/heads/main/JewScanner.py"
 CONFIG_FILE = "config.json"
@@ -497,7 +497,10 @@ async def on_ready():
 
     embed.add_field(
         name=f"🟢 Online ({len(online)})",
-        value="\n".join([f"🟢 `{ip}:{port}`" for (ip, port), _ in online]) or "None",
+        value="\n".join([
+    f"🟢 `{info.server_name} - {ip}:{port}`"
+    for (ip, port), info in online
+]) or "None",
         inline=False
     )
 
